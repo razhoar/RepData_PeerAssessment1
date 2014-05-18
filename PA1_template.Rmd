@@ -1,20 +1,95 @@
-# Reproducible Research: Peer Assessment 1
+`r opts_chunk$set(cache=TRUE)`
 
+Reproducible Research: Peer Assessment 1
+=========================================================
 
-## Loading and preprocessing the data
+# Loading and preprocessing the data
+```{r echo=TRUE}
+data <- read.csv("activity.csv")
+data$date <- as.Date(data$date, "%Y-%m-%d")
+completecases <- data[complete.cases(data),]
+```
 
+# What is mean total number of steps taken per day?
+## Histogram of total number of steps per day
+```{r echo=TRUE}
+stepsperday <- aggregate(completecases$steps, by=list(completecases$date), FUN=sum)
+names(stepsperday) <- c("Day", "Steps taken")
+#print(stepsperday)
+hist(stepsperday$"Steps taken", main="Histogram of the total number of steps per day", xlab="Steps")
+```
 
+## Mean and median per day
+```{r echo=TRUE}
+meanperday <- aggregate(completecases$steps, by=list(completecases$date), FUN=mean)
+medianperday <- aggregate(completecases$steps, by=list(completecases$date), FUN=median)
+res <- data.frame(meanperday, medianperday$x)
+names(res) <- c("Day", "Mean per day", "Median per day")
+print(res, row.names = FALSE)
+```
 
-## What is mean total number of steps taken per day?
+# What is the average daily activity pattern?
+## Activity plot
+```{r echo=TRUE}
+meanperinterval <- aggregate(completecases$steps, by=list(completecases$interval), FUN=mean)
+plot.default(meanperinterval$Group.1, meanperinterval$x, type='l', xlab="Interval", ylab="Average number of steps")
+```
 
+# Maximun activity interval
+```{r echo=TRUE}
+res <- meanperinterval[which.max(meanperinterval$x),]
+names(res) <- c("Interval", "Steps")
+print(res, row.names = FALSE)
+```
 
+# Imputing missing values
+## Total number of missing values
+```{recho=TRUE}
+sum(is.na(data))
+```
 
-## What is the average daily activity pattern?
+## Filling the missing values
+To fill the missing values we will use the mean of the interval across all days.
+```{r echo=TRUE}
+imputate = function (i) meanperinterval[which(meanperinterval$Group.1 == i),"x"]
 
+# Creating a new data set with with the imputed values
+newdata <- data
+newdata[is.na(data$steps),"steps"] <- sapply(data[is.na(data$steps),"interval"], imputate)
 
+# Repeating activity pattern analysis with the imputed data
+completecases <- newdata
+```
 
-## Imputing missing values
+## Repeateating the previous analysis
+### Histogram of total number of steps per day with imputated values
+```{r echo=TRUE}
+stepsperday <- aggregate(completecases$steps, by=list(completecases$date), FUN=sum)
+names(stepsperday) <- c("Day", "Steps taken")
+#print(stepsperday)
+hist(stepsperday$"Steps taken", main="Histogram of the total number of steps per day with imputated values", xlab="Steps")
+```
 
+### Mean and median per day with imputated values
+```{r echo=TRUE}
+meanperday <- aggregate(completecases$steps, by=list(completecases$date), FUN=mean)
+medianperday <- aggregate(completecases$steps, by=list(completecases$date), FUN=median)
+res <- data.frame(meanperday, medianperday$x)
+names(res) <- c("Day", "Mean per day", "Median per day")
+print(res, row.names = FALSE)
+```
 
+## Conclusions
+Using the mean of the values already present the histogram grew and the days from which all the cases where incomplete sudenly have an elevated median that seems unreasonably high in comparison with the other days.
 
-## Are there differences in activity patterns between weekdays and weekends?
+# Are there differences in activity patterns between weekdays and weekends?
+```{r echo=TRUE}
+library(lattice)
+isweekend <- factor((as.POSIXlt(data$date)$wday == 6) | (as.POSIXlt(data$date)$wday == 7), labels = c("weekday", "weekend"))
+data$isweekend <- isweekend
+completecases <- data[complete.cases(data),]
+meanperinterval <- aggregate(completecases$steps, by=c(list(completecases$interval),list(completecases$isweekend)), FUN=mean)
+names(meanperinterval) <- c("interval", "isweekend", "meansteps")
+xyplot(meansteps ~ interval | isweekend, data = meanperinterval, , type="l", layout = c(1, 2))
+```
+
