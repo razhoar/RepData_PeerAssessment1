@@ -1,4 +1,4 @@
-`r opts_chunk$set(cache=TRUE)`
+`r opts_chunk$set(cache=FALSE)`
 
 Reproducible Research: Peer Assessment 1
 =========================================================
